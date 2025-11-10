@@ -1,0 +1,117 @@
+services:
+  # NATS JetStream for inter-service communication
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats-server
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "-m", "8222"]
+    networks:
+      - transaction-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Transaction View Service
+  transaction-db:
+    image: postgres:16-alpine
+    container_name: transaction-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transaction_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
+    networks:
+      - transaction-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Audit Log Service
+  audit-db:
+    image: postgres:16-alpine
+    container_name: audit-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audit_log_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - audit-db-data:/var/lib/postgresql/data
+    networks:
+      - transaction-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Transaction View Service
+  transaction-view-service:
+    build:
+      context: .
+      dockerfile: services/transaction-view-service/Dockerfile
+    container_name: transaction-view-service
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:postgres@transaction-db:5432/transaction_db?sslmode=disable&connect_timeout=10"
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 24h
+      NATS_URL: nats://nats:4222
+      NATS_CLUSTER_ID: transaction-cluster
+      SERVICE_NAME: transaction-view-service
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      transaction-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - transaction-network
+    restart: unless-stopped
+
+  # Audit Log Service
+  audit-log-service:
+    build:
+      context: .
+      dockerfile: services/audit-log-service/Dockerfile
+    container_name: audit-log-service
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://postgres:postgres@audit-db:5432/audit_log_db?sslmode=disable&connect_timeout=10"
+      NATS_URL: nats://nats:4222
+      NATS_CLUSTER_ID: transaction-cluster
+      SERVICE_NAME: audit-log-service
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001}
+    ports:
+      - "3001:3001"
+    depends_on:
+      audit-db:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    networks:
+      - transaction-network
+    restart: unless-stopped
+
+networks:
+  transaction-network:
+    driver: bridge
+
+volumes:
+  transaction-db-data:
+  audit-db-data:
+
