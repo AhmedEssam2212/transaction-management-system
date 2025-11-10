@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+*.log
+.env.local
+.env.*.local
+coverage/
+.DS_Store
+*.tsbuildinfo
+.git/
+.gitignore
+README.md
+docker-compose.yml
+Dockerfile
+
