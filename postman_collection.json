@@ -1,0 +1,611 @@
+{
+  "info": {
+    "name": "Transaction Management System",
+    "description": "Complete API collection for Transaction Management System with distributed transaction guarantees and audit logging",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url_transaction",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "base_url_audit",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transaction_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correlation_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Transaction Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/health",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Audit Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/health",
+              "host": ["{{base_url_audit}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.data.accessToken);",
+                  "    pm.environment.set('access_token', response.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/auth/login",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with test user credentials to get JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/auth/me",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get current authenticated user information"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('transaction_id', response.data.id);",
+                  "    pm.environment.set('transaction_id', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100.50,\n  \"currency\": \"USD\",\n  \"description\": \"Test transaction from Postman\",\n  \"metadata\": {\n    \"source\": \"postman\",\n    \"category\": \"test\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Create a new transaction. Automatically creates an audit log."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions?page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC"
+                }
+              ]
+            },
+            "description": "List all transactions with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions/{{transaction_id}}",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions", "{{transaction_id}}"]
+            },
+            "description": "Get a specific transaction by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 150.75,\n  \"status\": \"COMPLETED\",\n  \"description\": \"Updated transaction\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions/{{transaction_id}}",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions", "{{transaction_id}}"]
+            },
+            "description": "Update an existing transaction. Creates an audit log with before/after state."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions/{{transaction_id}}",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions", "{{transaction_id}}"]
+            },
+            "description": "Delete a transaction. Creates an audit log."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions?status=COMPLETED",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "COMPLETED"
+                }
+              ]
+            },
+            "description": "Filter transactions by status (PENDING, COMPLETED, FAILED, CANCELLED, PROCESSING)"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Currency",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions?currency=USD",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                {
+                  "key": "currency",
+                  "value": "USD"
+                }
+              ]
+            },
+            "description": "Filter transactions by currency (USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY)"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Amount Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions?minAmount=50&maxAmount=200",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                {
+                  "key": "minAmount",
+                  "value": "50"
+                },
+                {
+                  "key": "maxAmount",
+                  "value": "200"
+                }
+              ]
+            },
+            "description": "Filter transactions by amount range"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions?startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01T00:00:00Z"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31T23:59:59Z"
+                }
+              ]
+            },
+            "description": "Filter transactions by date range"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "Query All Audit Logs",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/api/audit-logs?page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+              "host": ["{{base_url_audit}}"],
+              "path": ["api", "audit-logs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC"
+                }
+              ]
+            },
+            "description": "Query all audit logs with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Action",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/api/audit-logs?action=CREATE",
+              "host": ["{{base_url_audit}}"],
+              "path": ["api", "audit-logs"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "CREATE",
+                  "description": "CREATE, UPDATE, DELETE, READ, LOGIN, LOGOUT, ROLLBACK"
+                }
+              ]
+            },
+            "description": "Filter audit logs by action type"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Entity Type",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/api/audit-logs?entityType=Transaction",
+              "host": ["{{base_url_audit}}"],
+              "path": ["api", "audit-logs"],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "Transaction"
+                }
+              ]
+            },
+            "description": "Filter audit logs by entity type"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/api/audit-logs?status=SUCCESS",
+              "host": ["{{base_url_audit}}"],
+              "path": ["api", "audit-logs"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUCCESS",
+                  "description": "SUCCESS, FAILED, ROLLED_BACK, PENDING"
+                }
+              ]
+            },
+            "description": "Filter audit logs by status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logs by Entity",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_audit}}/api/audit-logs/entity/Transaction/{{transaction_id}}",
+              "host": ["{{base_url_audit}}"],
+              "path": ["api", "audit-logs", "entity", "Transaction", "{{transaction_id}}"]
+            },
+            "description": "Get all audit logs for a specific entity (transaction)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "item": [
+        {
+          "name": "Unauthorized Access",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Attempt to access protected endpoint without authentication"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Credentials",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/auth/login",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Attempt login with invalid credentials"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Transaction - Negative Amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": -100,\n  \"currency\": \"USD\",\n  \"description\": \"Invalid negative amount\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Attempt to create transaction with negative amount"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Transaction - Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Missing required fields\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Attempt to create transaction without required fields"
+          },
+          "response": []
+        },
+        {
+          "name": "Transaction Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions", "00000000-0000-0000-0000-000000000000"]
+            },
+            "description": "Attempt to get non-existent transaction"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Currency",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"currency\": \"INVALID\",\n  \"description\": \"Invalid currency code\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url_transaction}}/api/transactions",
+              "host": ["{{base_url_transaction}}"],
+              "path": ["api", "transactions"]
+            },
+            "description": "Attempt to create transaction with invalid currency"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+
