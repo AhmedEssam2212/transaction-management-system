@@ -41,11 +41,12 @@ describe("Transaction E2E Tests", () => {
 
   afterAll(async () => {
     // Clean up
-    const transactionRepository = AppDataSource.getRepository(Transaction);
-    const userRepository = AppDataSource.getRepository(User);
-
-    await transactionRepository.delete({});
-    await userRepository.delete({});
+    try {
+      await AppDataSource.query(`TRUNCATE TABLE "transactions" CASCADE`);
+      await AppDataSource.query(`TRUNCATE TABLE "users" CASCADE`);
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
 
     await app.close();
   });

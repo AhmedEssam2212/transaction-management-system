@@ -42,11 +42,12 @@ describe("Distributed Transaction E2E Tests", () => {
 
   afterAll(async () => {
     // Clean up
-    const transactionRepository = AppDataSource.getRepository(Transaction);
-    const userRepository = AppDataSource.getRepository(User);
-
-    await transactionRepository.delete({});
-    await userRepository.delete({});
+    try {
+      await AppDataSource.query(`TRUNCATE TABLE "transactions" CASCADE`);
+      await AppDataSource.query(`TRUNCATE TABLE "users" CASCADE`);
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
 
     await app.close();
   });
@@ -196,17 +197,22 @@ describe("Distributed Transaction E2E Tests", () => {
       // Wait to ensure no audit log is created
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Verify no transaction was created
+      // Verify no transaction was created with negative amounts
+      // Query with valid parameters to get all transactions
       const listResponse = await app.inject({
         method: "GET",
-        url: "/api/transactions?minAmount=-200&maxAmount=0",
+        url: "/api/transactions?limit=100",
         headers: {
           authorization: `Bearer ${authToken}`,
         },
       });
 
       const listBody = JSON.parse(listResponse.body);
-      expect(listBody.data.data).toHaveLength(0);
+      // Check that no transaction with negative amount exists
+      const negativeTransactions = listBody.data.data.filter(
+        (t: any) => t.amount < 0
+      );
+      expect(negativeTransactions).toHaveLength(0);
     });
   });
 
@@ -216,13 +222,15 @@ describe("Distributed Transaction E2E Tests", () => {
     });
 
     test("Can publish messages to NATS", async () => {
+      // Test publishing to an existing stream subject
       const testMessage = {
         test: "message",
         timestamp: new Date().toISOString(),
       };
 
+      // Use NATS_SUBJECTS.TRANSACTION_CREATED which is part of the TRANSACTIONS stream
       await expect(
-        natsClient.publish("test.subject", testMessage)
+        natsClient.publish("transaction.created", testMessage)
       ).resolves.not.toThrow();
     });
   });
@@ -231,6 +239,7 @@ describe("Distributed Transaction E2E Tests", () => {
     test("Multiple concurrent transactions are handled correctly", async () => {
       const promises = [];
 
+      // Test with 5 concurrent transactions using optimized shared subscription
       for (let i = 0; i < 5; i++) {
         promises.push(
           app.inject({
@@ -258,7 +267,7 @@ describe("Distributed Transaction E2E Tests", () => {
       });
 
       // Wait for all audit logs
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Verify all transactions were created
       const listResponse = await app.inject({

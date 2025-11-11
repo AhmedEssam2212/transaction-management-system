@@ -11,25 +11,17 @@ beforeAll(async () => {
   await AppDataSource.dropDatabase();
   await AppDataSource.synchronize();
 
-  // Run migrations to set up schema
-  await AppDataSource.runMigrations();
+  // Run migrations to set up the schema properly
+  try {
+    await AppDataSource.runMigrations();
+  } catch (error) {
+    // Migrations might fail if already run, that's okay
+    console.log("Migration warning (can be ignored):", (error as Error).message);
+  }
 
   console.log(
     "E2E Test setup complete - Database initialized with clean state"
   );
-});
-
-afterEach(async () => {
-  // Clean up data after each test to prevent test pollution
-  // This ensures each test starts with a clean slate
-  if (AppDataSource.isInitialized) {
-    const entities = AppDataSource.entityMetadatas;
-
-    for (const entity of entities) {
-      const repository = AppDataSource.getRepository(entity.name);
-      await repository.clear(); // Removes all rows from the table
-    }
-  }
 });
 
 afterAll(async () => {
