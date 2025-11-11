@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { TransactionStatus, Currency } from "@transaction-system/shared";
+import {
+  TransactionStatus,
+  Currency,
+  SortOrder,
+} from "@transaction-system/shared";
 
 export const createTransactionSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
@@ -30,7 +34,7 @@ export const transactionQuerySchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   sortBy: z.enum(["createdAt", "updatedAt", "amount"]).default("createdAt"),
-  sortOrder: z.enum(["ASC", "DESC"]).default("DESC"),
+  sortOrder: z.nativeEnum(SortOrder).default(SortOrder.DESC),
 });
 
 export const transactionIdSchema = z.object({

@@ -4,6 +4,7 @@ import { BaseRepository } from "./base.repository";
 import {
   TransactionQueryDto,
   PaginatedResult,
+  SortOrder,
 } from "@transaction-system/shared";
 
 export class TransactionRepository extends BaseRepository<Transaction> {
@@ -21,7 +22,7 @@ export class TransactionRepository extends BaseRepository<Transaction> {
       limit,
       filters: { userId } as any,
       sortBy: "createdAt",
-      sortOrder: "DESC",
+      sortOrder: SortOrder.DESC,
     });
   }
 
@@ -70,7 +71,7 @@ export class TransactionRepository extends BaseRepository<Transaction> {
       skip,
       take: limit,
       order: {
-        [query.sortBy || "createdAt"]: query.sortOrder || "DESC",
+        [query.sortBy || "createdAt"]: query.sortOrder || SortOrder.DESC,
       },
     });
 
