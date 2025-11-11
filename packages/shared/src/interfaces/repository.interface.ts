@@ -1,3 +1,5 @@
+import { SortOrder } from "../enums";
+
 export interface IRepository<T> {
   findAll(options?: FindAllOptions): Promise<PaginatedResult<T>>;
   findById(id: string): Promise<T | null>;
@@ -12,7 +14,7 @@ export interface FindAllOptions {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: "ASC" | "DESC";
+  sortOrder?: SortOrder;
   filters?: Record<string, any>;
 }
 

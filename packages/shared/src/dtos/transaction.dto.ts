@@ -1,9 +1,15 @@
 import { TransactionStatus } from "../enums/transaction-status.enum";
 import { Currency } from "../enums/currency.enum";
+import { SortOrder } from "../enums/sort-order.enum";
 
-// TODO: is it the right approach to have them in one file or seperate file 
-// for each prefered and best practice ?
-//  also why using interface not a class ? is also this a best practice ?
+/**
+ * Transaction Data Transfer Objects (DTOs)
+ *
+ * These are pure TypeScript interfaces for compile-time type safety.
+ * Runtime validation is handled separately by Zod schemas in each service's validators/ folder.
+ *
+ * See README.md "Technical Decisions" section for detailed explanation of this architecture.
+ */
 export interface CreateTransactionDto {
   amount: number;
   currency: Currency;
@@ -42,5 +48,5 @@ export interface TransactionQueryDto {
   startDate?: string;
   endDate?: string;
   sortBy?: string;
-  sortOrder?: "ASC" | "DESC";
+  sortOrder?: SortOrder;
 }

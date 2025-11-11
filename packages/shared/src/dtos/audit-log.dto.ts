@@ -1,5 +1,15 @@
 import { AuditAction } from "../enums/audit-action.enum";
 import { AuditStatus } from "../enums/audit-status.enum";
+import { SortOrder } from "../enums/sort-order.enum";
+
+/**
+ * Audit Log Data Transfer Objects (DTOs)
+ *
+ * These are pure TypeScript interfaces for compile-time type safety.
+ * Runtime validation is handled separately by Zod schemas in each service's validators/ folder.
+ *
+ * See README.md "Technical Decisions" section for detailed explanation of this architecture.
+ */
 
 export interface CreateAuditLogDto {
   action: AuditAction;
@@ -50,5 +60,5 @@ export interface AuditLogQueryDto {
   startDate?: string;
   endDate?: string;
   sortBy?: string;
-  sortOrder?: "ASC" | "DESC"; // TODO : create an enum for sortOrder
+  sortOrder?: SortOrder;
 }
