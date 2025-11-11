@@ -20,13 +20,26 @@ export async function buildApp(): Promise<FastifyInstance> {
       transport:
         envConfig.nodeEnv === "development"
           ? {
-              target: "pino-pretty",
-              options: {
-                translateTime: "HH:MM:ss Z",
-                ignore: "pid,hostname",
-              },
-            }
+            target: "pino-pretty",
+            options: {
+              translateTime: "HH:MM:ss Z",
+              ignore: "pid,hostname",
+            },
+          }
           : undefined,
+    },
+    ajv: {
+      customOptions: {
+        removeAdditional: false,
+        useDefaults: true,
+        coerceTypes: false,
+        allErrors: true,
+      },
+      plugins: [
+        function (ajv: any) {
+          ajv.addKeyword("example");
+        },
+      ],
     },
   });
 
