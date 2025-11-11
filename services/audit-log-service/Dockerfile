@@ -38,9 +38,14 @@ RUN npm ci --omit=dev --workspace=@transaction-system/shared --workspace=@transa
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/services/audit-log-service/dist ./services/audit-log-service/dist
 
-# Copy entrypoint script
+# Copy package.json files for runtime
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+
+# Copy entrypoint script and ensure Unix line endings
 COPY services/audit-log-service/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && \
+    # Convert line endings from CRLF to LF if needed
+    sed -i 's/\r$//' /docker-entrypoint.sh || true
 
 # Expose port
 EXPOSE 3001

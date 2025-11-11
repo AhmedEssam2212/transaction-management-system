@@ -20,9 +20,10 @@ services:
     image: postgres:16-alpine
     container_name: transaction-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: txg
+      POSTGRES_PASSWORD: txg
       POSTGRES_DB: transaction_db
+      POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5432:5432"
     volumes:
@@ -40,9 +41,10 @@ services:
     image: postgres:16-alpine
     container_name: audit-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: txg
+      POSTGRES_PASSWORD: txg
       POSTGRES_DB: audit_log_db
+      POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5433:5432"
     volumes:
@@ -64,7 +66,7 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: production
-      DATABASE_URL: "postgresql://postgres:postgres@transaction-db:5432/transaction_db?sslmode=disable&connect_timeout=10"
+      DATABASE_URL: "postgresql://txg:txg@transaction-db:5432/transaction_db?sslmode=disable&connect_timeout=10"
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 24h
       NATS_URL: nats://nats:4222
@@ -91,7 +93,7 @@ services:
     environment:
       PORT: 3001
       NODE_ENV: production
-      DATABASE_URL: "postgresql://postgres:postgres@audit-db:5432/audit_log_db?sslmode=disable&connect_timeout=10"
+      DATABASE_URL: "postgresql://txg:txg@audit-db:5432/audit_log_db?sslmode=disable&connect_timeout=10"
       NATS_URL: nats://nats:4222
       NATS_CLUSTER_ID: transaction-cluster
       SERVICE_NAME: audit-log-service
