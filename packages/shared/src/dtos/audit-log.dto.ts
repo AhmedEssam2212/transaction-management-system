@@ -8,7 +8,7 @@ import { SortOrder } from "../enums/sort-order.enum";
  * These are pure TypeScript interfaces for compile-time type safety.
  * Runtime validation is handled separately by Zod schemas in each service's validators/ folder.
  *
- * See README.md "Technical Decisions" section for detailed explanation of this architecture.
+ * See README.md "Architecture Decisions" section for detailed explanation of this architecture.
  */
 
 export interface CreateAuditLogDto {

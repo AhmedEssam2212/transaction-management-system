@@ -29,7 +29,6 @@ export class NatsClient {
 
       await this.setupStreams();
 
-      // Handle connection events
       (async () => {
         for await (const status of this.connection!.status()) {
           console.log(`NATS connection status: ${status.type}`);
@@ -47,7 +46,6 @@ export class NatsClient {
     }
 
     try {
-      // Setup Audit Logs Stream
       const auditStreamConfig: Partial<StreamConfig> = {
         name: NATS_STREAMS.AUDIT_LOGS,
         subjects: [
@@ -67,7 +65,6 @@ export class NatsClient {
         console.log(`Created stream ${NATS_STREAMS.AUDIT_LOGS}`);
       }
 
-      // Setup Transactions Stream
       const transactionStreamConfig: Partial<StreamConfig> = {
         name: NATS_STREAMS.TRANSACTIONS,
         subjects: [

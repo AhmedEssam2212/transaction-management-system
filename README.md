@@ -620,18 +620,6 @@ npm run test:e2e -- tests/rollback-scenarios.e2e.test.ts
 - ✅ Correlation ID tracking across services
 - ✅ Rollback event publishing and handling
 
-### Unit Tests
-
-```bash
-# Run all unit tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run with coverage
-npm test -- --coverage
-```
 
 ### Test Requirements
 
@@ -712,232 +700,13 @@ Once the service is running, visit:
 - **Swagger UI**: http://localhost:3000/documentation
 - **OpenAPI JSON**: http://localhost:3000/documentation/json
 
-**Key Endpoints**:
-
-**Authentication**
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-
-**Transactions**
-- `POST /api/transactions` - Create transaction
-- `GET /api/transactions` - List transactions (with filters)
-- `GET /api/transactions/:id` - Get transaction by ID
-- `PUT /api/transactions/:id` - Update transaction
-- `DELETE /api/transactions/:id` - Delete transaction
-
-**Query Parameters for Listing**:
-- `page` - Page number (default: 1)
-- `limit` - Items per page (default: 10, max: 100)
-- `status` - Filter by status (PENDING, COMPLETED, FAILED, CANCELLED, PROCESSING)
-- `currency` - Filter by currency (USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY)
-- `minAmount` - Minimum transaction amount
-- `maxAmount` - Maximum transaction amount
-- `startDate` - Start date for date range filter (ISO 8601)
-- `endDate` - End date for date range filter (ISO 8601)
-- `sortBy` - Sort field (createdAt, amount, status)
-- `sortOrder` - Sort order (ASC, DESC)
-
 #### Audit Log Service API
 
 Once the service is running, visit:
-- **Swagger UI**: http://localhost:3001/documentation
+- **Swagger UI**: http://localhost:300/documentation | http://localhost:3001/documentation
 - **OpenAPI JSON**: http://localhost:3001/documentation/json
 
-**Key Endpoints**:
 
-**Audit Logs**
-- `POST /api/audit-logs` - Create audit log (internal use via NATS)
-- `GET /api/audit-logs` - Query audit logs
-- `GET /api/audit-logs/:id` - Get audit log by ID
-- `GET /api/audit-logs/correlation/:correlationId` - Get logs by correlation ID
-- `GET /api/audit-logs/entity/:entityType/:entityId` - Get logs by entity
-
-**Query Parameters for Listing**:
-- `page` - Page number (default: 1)
-- `limit` - Items per page (default: 10, max: 100)
-- `entityType` - Filter by entity type (Transaction, User, etc.)
-- `entityId` - Filter by specific entity ID
-- `action` - Filter by action (CREATE, UPDATE, DELETE, READ, LOGIN, LOGOUT, ROLLBACK)
-- `status` - Filter by status (SUCCESS, FAILED, ROLLED_BACK, PENDING)
-- `userId` - Filter by user ID
-- `startDate` - Start date for date range filter (ISO 8601)
-- `endDate` - End date for date range filter (ISO 8601)
-- `sortBy` - Sort field (createdAt, action, status)
-- `sortOrder` - Sort order (ASC, DESC)
-
-### Example API Usage
-
-**1. Login**
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "password123"
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "username": "testuser",
-      "email": "test@example.com"
-    }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "path": "/api/auth/login"
-}
-```
-
-**2. Create Transaction**
-```bash
-curl -X POST http://localhost:3000/api/transactions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "amount": 100.50,
-    "currency": "USD",
-    "description": "Test transaction",
-    "metadata": {
-      "category": "payment",
-      "reference": "INV-001"
-    }
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-    "userId": "550e8400-e29b-41d4-a716-446655440000",
-    "amount": 100.50,
-    "currency": "USD",
-    "status": "PENDING",
-    "description": "Test transaction",
-    "metadata": {
-      "category": "payment",
-      "reference": "INV-001"
-    },
-    "createdAt": "2024-01-15T10:35:00.000Z",
-    "updatedAt": "2024-01-15T10:35:00.000Z"
-  },
-  "timestamp": "2024-01-15T10:35:00.000Z",
-  "path": "/api/transactions"
-}
-```
-
-**3. List Transactions**
-```bash
-curl -X GET "http://localhost:3000/api/transactions?page=1&limit=10&status=COMPLETED" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-        "userId": "550e8400-e29b-41d4-a716-446655440000",
-        "amount": 100.50,
-        "currency": "USD",
-        "status": "COMPLETED",
-        "description": "Test transaction",
-        "createdAt": "2024-01-15T10:35:00.000Z",
-        "updatedAt": "2024-01-15T10:40:00.000Z"
-      }
-    ],
-    "total": 1,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 1
-  },
-  "timestamp": "2024-01-15T10:45:00.000Z",
-  "path": "/api/transactions"
-}
-```
-
-**4. Query Audit Logs**
-```bash
-curl -X GET "http://localhost:3001/api/audit-logs?entityType=Transaction&action=CREATE" \
-  -H "Content-Type: application/json"
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        "action": "CREATE",
-        "entityType": "Transaction",
-        "entityId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-        "userId": "550e8400-e29b-41d4-a716-446655440000",
-        "status": "SUCCESS",
-        "correlationId": "corr-123e4567-e89b-12d3-a456-426614174000",
-        "serviceName": "transaction-view-service",
-        "metadata": {
-          "amount": 100.50,
-          "currency": "USD"
-        },
-        "changes": null,
-        "ipAddress": "127.0.0.1",
-        "userAgent": "curl/7.68.0",
-        "createdAt": "2024-01-15T10:35:00.000Z"
-      }
-    ],
-    "total": 1,
-    "page": 1,
-    "limit": 10,
-    "totalPages": 1
-  },
-  "timestamp": "2024-01-15T10:50:00.000Z",
-  "path": "/api/audit-logs"
-}
-```
-
-**5. Update Transaction (with before/after tracking)**
-```bash
-curl -X PUT http://localhost:3000/api/transactions/7c9e6679-7425-40de-944b-e07fc1f90ae7 \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{
-    "status": "COMPLETED",
-    "amount": 150.75
-  }'
-```
-
-**Corresponding Audit Log:**
-```json
-{
-  "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  "action": "UPDATE",
-  "entityType": "Transaction",
-  "entityId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-  "status": "SUCCESS",
-  "changes": {
-    "before": {
-      "amount": 100.50,
-      "status": "PENDING"
-    },
-    "after": {
-      "amount": 150.75,
-      "status": "COMPLETED"
-    }
-  },
-  "createdAt": "2024-01-15T10:55:00.000Z"
-}
 ```
 
 ## 🗄️ Database Schema
@@ -1094,6 +863,103 @@ transaction-management-system/
 - Prometheus metrics endpoint
 - Grafana dashboards
 - Alert rules for critical errors
+
+## 🔒 Security
+
+### Implemented Security Features
+
+✅ **Authentication & Authorization**
+- JWT-based authentication with `@fastify/jwt`
+- Bcrypt password hashing (salt rounds: 10)
+- Secure password comparison
+- Token expiration (configurable, default: 24h)
+- Protected routes with authentication middleware
+
+✅ **Input Validation**
+- Zod schema validation for all inputs
+- Type-safe validation with TypeScript
+- SQL injection protection via TypeORM parameterized queries
+- UUID validation for IDs
+- Enum validation for currencies and statuses
+
+✅ **CORS Configuration**
+- Environment-based allowed origins
+- Production-ready CORS settings
+- Credentials support for authenticated requests
+- Restricted HTTP methods and headers
+
+✅ **Rate Limiting** (NEW)
+- 100 requests per 15 minutes per IP
+- Prevents brute force attacks
+- DDoS protection
+- Configurable limits and time windows
+- Graceful error handling
+
+✅ **Secrets Management**
+- Environment variable-based configuration
+- No hardcoded secrets in source code
+- `.env` files in `.gitignore`
+- JWT secret validation (minimum 32 characters)
+- Docker secrets support via environment variables
+
+✅ **Error Handling**
+- Global error handler
+- No sensitive data exposure in errors
+- Stack traces only in development
+- Structured error logging
+- Custom exception classes
+
+✅ **Database Security**
+- SSL/TLS support for connections
+- Connection pooling (max: 20)
+- Migration-based schema management
+- User-scoped queries
+- Separate databases per service
+
+✅ **Audit Logging**
+- Complete audit trail for all transactions
+- Before/after state tracking
+- User, IP, and user-agent tracking
+- Correlation IDs for distributed tracing
+- Immutable audit records
+
+### Security Configuration
+
+**Environment Variables** (`.env` file):
+```bash
+# JWT Secret - Must be at least 32 characters
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your-secret-key-change-this-in-production
+
+# CORS Allowed Origins - Comma-separated list
+# Production example: ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+```
+
+**Rate Limiting Configuration**:
+- **Max Requests**: 100 per 15 minutes
+- **Cache Size**: 10,000 IPs
+- **Whitelist**: localhost (127.0.0.1)
+- **Error Response**: 429 Too Many Requests
+
+**CORS Configuration**:
+- **Development**: All origins allowed
+- **Production**: Only specified origins in `ALLOWED_ORIGINS`
+- **Methods**: GET, POST, PUT, DELETE, PATCH
+- **Headers**: Content-Type, Authorization
+
+### Security Best Practices
+
+1. **Never commit `.env` files** - Use `.env.example` for documentation
+2. **Rotate secrets regularly** - Especially JWT secrets in production
+3. **Use HTTPS in production** - Configure reverse proxy (Nginx, Traefik)
+4. **Monitor rate limit violations** - Set up alerts for suspicious activity
+5. **Review audit logs** - Regular security audits of transaction history
+6. **Keep dependencies updated** - Run `npm audit` regularly
+7. **Use strong passwords** - Minimum 8 characters with complexity
+8. **Enable database SSL** - Set `sslmode=require` in production
+
+---
 
 ## 🚧 Future Enhancements
 
@@ -1298,18 +1164,116 @@ interface CreateTransactionDto {
 
 ### Security Enhancements
 
-#### 19. **Advanced Authentication & Authorization**
+#### 19. **Security Headers with Helmet** (Medium Priority)
+**Goal**: Add comprehensive security headers to prevent common web vulnerabilities
+- Content Security Policy (CSP) to prevent XSS
+- X-Frame-Options for clickjacking protection
+- X-Content-Type-Options to prevent MIME sniffing
+- HSTS (HTTP Strict Transport Security)
+- Referrer Policy control
+
+**Implementation**:
+```typescript
+import helmet from '@fastify/helmet';
+await fastify.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
+});
+```
+
+#### 20. **Token Refresh Mechanism** (Medium Priority)
+**Goal**: Implement refresh tokens for better security
+- Short-lived access tokens (15 minutes)
+- Long-lived refresh tokens (7 days)
+- Token rotation on each refresh
+- Database-backed refresh token storage for revocation
+- Improved user experience (stay logged in)
+
+#### 21. **Request Size Limits** (Medium Priority)
+**Goal**: Prevent DoS attacks via large payloads
+- Configure body size limits (default: 1MB)
+- Per-route limits for file uploads
+- Prevent memory exhaustion attacks
+
+#### 22. **Password Strength Requirements** (Low Priority)
+**Goal**: Enforce strong password policies
+- Minimum 8 characters (currently 6)
+- Require uppercase, lowercase, number, special character
+- Password complexity validation with Zod regex
+- Compliance with security standards (PCI DSS, GDPR)
+
+#### 23. **Two-Factor Authentication (2FA)** (Low Priority)
+**Goal**: Add second authentication factor
+- TOTP-based 2FA using speakeasy
+- QR code generation for authenticator apps
+- Backup codes for account recovery
+- Required for financial applications
+
+#### 24. **Account Lockout** (Medium Priority)
+**Goal**: Prevent brute force attacks on login
+- Lock account after 5 failed attempts
+- 15-minute lockout period
+- Track failed login attempts in database
+- Email notification on account lockout
+
+#### 25. **API Key Authentication** (Low Priority)
+**Goal**: Service-to-service authentication
+- Generate API keys for external services
+- Per-service rate limiting
+- Audit trail for service-to-service calls
+- Key rotation and revocation
+
+#### 26. **IP Whitelisting** (Low Priority)
+**Goal**: Restrict admin endpoints to trusted IPs
+- Configurable IP whitelist
+- CIDR notation support
+- Reduce attack surface for sensitive endpoints
+
+#### 27. **Security Monitoring & Alerts** (Medium Priority)
+**Goal**: Real-time security event monitoring
+- Failed login attempt tracking
+- Rate limit violation alerts
+- Unusual transaction pattern detection
+- Integration with Slack/PagerDuty/CloudWatch
+
+#### 28. **Dependency Vulnerability Scanning** (Medium Priority)
+**Goal**: Automated security scanning
+- npm audit integration in CI/CD
+- Snyk or GitHub Dependabot
+- Automated pull requests for security updates
+- Regular security audits
+
+#### 29. **HTTPS/TLS Configuration** (High Priority for Production)
+**Goal**: Encrypt all traffic in production
+- Nginx/Traefik reverse proxy with SSL
+- TLS 1.2+ only
+- Strong cipher suites
+- SSL certificate management (Let's Encrypt)
+
+#### 30. **Penetration Testing** (High Priority before Production)
+**Goal**: Professional security assessment
+- OWASP ZAP automated scanning
+- Burp Suite manual testing
+- SQL injection testing with SQLMap
+- Authentication bypass attempts
+- XSS vulnerability scanning
+
+#### 31. **Advanced Authentication & Authorization**
 - OAuth 2.0 / OpenID Connect integration
 - Role-Based Access Control (RBAC)
 - Permission-based authorization (e.g., `transaction:read`, `transaction:write`)
-- API key authentication for service-to-service calls
+- Fine-grained access control
 
-#### 20. **Security Hardening**
-- Implement CORS policies
-- Add Helmet.js for security headers
-- SQL injection prevention (already using TypeORM parameterized queries)
-- Input sanitization for XSS prevention
-- Secrets management with HashiCorp Vault or AWS Secrets Manager
+#### 32. **Secrets Management**
+- HashiCorp Vault integration
+- AWS Secrets Manager
+- Azure Key Vault
+- Automated secret rotation
+- Centralized secrets management
 
 ---
 
@@ -1334,28 +1298,10 @@ interface CreateTransactionDto {
 
 ---
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License.
 
 ## 👥 Authors
 
-- Backend Engineer - Initial implementation
-
-## 🙏 Acknowledgments
-
-- Fastify team for the excellent framework
-- NATS team for the reliable messaging system
-- TypeORM team for the powerful ORM
-- The Node.js and TypeScript communities
+- Ahmed Essam - Backend Engineer
 
 ---
 

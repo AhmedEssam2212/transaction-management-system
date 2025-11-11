@@ -18,13 +18,11 @@ export class AuditLogHandler {
   }
 
   async setupHandlers(): Promise<void> {
-    // Handle audit log creation requests
     await this.natsClient.subscribe(
       NATS_SUBJECTS.AUDIT_LOG_CREATE,
       this.handleCreateAuditLog.bind(this)
     );
 
-    // Handle audit log rollback requests
     await this.natsClient.subscribe(
       NATS_SUBJECTS.AUDIT_LOG_ROLLBACK,
       this.handleRollbackAuditLog.bind(this)
@@ -47,7 +45,6 @@ export class AuditLogHandler {
 
       const auditLog = await this.auditLogService.createAuditLog(data);
 
-      // Publish success confirmation
       await this.natsClient.publish(NATS_SUBJECTS.AUDIT_LOG_CREATED, {
         correlationId: data.correlationId,
         auditLogId: auditLog.id,
@@ -70,7 +67,6 @@ export class AuditLogHandler {
         "Failed to create audit log"
       );
 
-      // Publish failure notification
       await this.natsClient.publish(NATS_SUBJECTS.AUDIT_LOG_FAILED, {
         correlationId: data.correlationId,
         error: error instanceof Error ? error.message : "Unknown error",

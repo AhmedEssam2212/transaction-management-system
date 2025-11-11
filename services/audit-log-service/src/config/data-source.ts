@@ -2,7 +2,6 @@ import { DataSource } from "typeorm";
 import { envConfig } from "./env.config";
 import { AuditLog } from "../entities/audit-log.entity";
 
-// Determine migration path based on environment
 const migrationPath = envConfig.nodeEnv === "production"
   ? "dist/migrations/*.js"
   : "src/migrations/*.ts";

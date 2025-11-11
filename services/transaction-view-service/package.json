@@ -19,6 +19,7 @@
   "dependencies": {
     "@fastify/cors": "^8.5.0",
     "@fastify/jwt": "^7.2.4",
+    "@fastify/rate-limit": "^9.1.0",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^2.1.0",
     "@transaction-system/shared": "^1.0.0",

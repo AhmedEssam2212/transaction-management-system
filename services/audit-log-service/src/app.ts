@@ -84,7 +84,6 @@ export async function buildApp(): Promise<FastifyInstance> {
     await AppDataSource.initialize();
     fastify.log.info("Database connected");
 
-    // Run migrations
     fastify.log.info("Running database migrations...");
     const migrations = await AppDataSource.runMigrations();
     if (migrations.length > 0) {

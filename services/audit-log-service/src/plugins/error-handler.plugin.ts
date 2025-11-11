@@ -19,7 +19,6 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
       const timestamp = new Date().toISOString();
       const path = request.url;
 
-      // Handle Zod validation errors
       if (error instanceof ZodError) {
         const response: ApiResponse = {
           success: false,
@@ -38,7 +37,6 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
         return reply.status(400).send(response);
       }
 
-      // Handle TypeORM QueryFailedError
       if (error instanceof QueryFailedError) {
         const dbError = error as any;
         let message = "Database query failed";
@@ -68,7 +66,6 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
         return reply.status(statusCode).send(response);
       }
 
-      // Handle TypeORM EntityNotFoundError
       if (error instanceof EntityNotFoundError) {
         const response: ApiResponse = {
           success: false,
@@ -83,7 +80,6 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
         return reply.status(404).send(response);
       }
 
-      // Log unexpected errors
       fastify.log.error(
         {
           error: {
@@ -99,7 +95,6 @@ async function errorHandlerPlugin(fastify: FastifyInstance) {
         "Unexpected error occurred"
       );
 
-      // Handle all other errors
       const response: ApiResponse = {
         success: false,
         error: {

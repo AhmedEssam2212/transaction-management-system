@@ -2,9 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/**
- * Validate required environment variables
- */
+
 function validateConfig() {
   const errors: string[] = [];
 
@@ -47,5 +45,4 @@ export const envConfig = {
   },
 };
 
-// Validate configuration on module load
 validateConfig();

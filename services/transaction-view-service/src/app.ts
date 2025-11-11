@@ -1,6 +1,7 @@
 import Fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
+import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { envConfig } from "./config/env.config";
@@ -49,6 +50,21 @@ export async function buildApp(): Promise<FastifyInstance> {
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
+  });
+
+  // Rate limiting to prevent brute force and DDoS attacks
+  await fastify.register(rateLimit, {
+    max: 100, // Maximum 100 requests
+    timeWindow: "15 minutes", // Per 15 minutes
+    cache: 10000, // Cache up to 10,000 different IPs
+    allowList: ["127.0.0.1"], // Whitelist localhost for development
+    redis: undefined, // Use in-memory store (upgrade to Redis for production)
+    skipOnError: true, // Don't block requests if rate limiter fails
+    errorResponseBuilder: () => ({
+      statusCode: 429,
+      error: "Too Many Requests",
+      message: "Rate limit exceeded. Please try again later.",
+    }),
   });
 
   await fastify.register(jwt, {

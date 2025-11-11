@@ -3,7 +3,6 @@ import { envConfig } from "./env.config";
 import { User } from "../entities/user.entity";
 import { Transaction } from "../entities/transaction.entity";
 
-// Determine migration path based on environment
 const migrationPath =
   envConfig.nodeEnv === "production"
     ? "dist/migrations/*.js"
