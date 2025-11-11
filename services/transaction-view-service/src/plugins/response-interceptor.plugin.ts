@@ -16,9 +16,13 @@ async function responseInterceptorPlugin(fastify: FastifyInstance) {
         return payload;
       }
 
+      // Convert payload to string if it's a Buffer
+      const payloadString = typeof payload === "string"
+        ? payload
+        : payload.toString();
+
       // Skip if payload is already an error response (handled by error handler)
-      const parsedPayload =
-        typeof payload === "string" ? JSON.parse(payload) : payload;
+      const parsedPayload = JSON.parse(payloadString);
       if (parsedPayload && parsedPayload.success === false) {
         return payload;
       }
