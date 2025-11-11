@@ -15,40 +15,57 @@ export async function authRoutes(fastify: FastifyInstance) {
     "/login",
     {
       schema: {
-        description: "User login",
+        description: `Authenticate user and receive JWT access token. Creates audit log for login action.
+
+**Success Response Example (200):**
+\`\`\`json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzYyODY0MDAwLCJleHAiOjE3NjI5NTA0MDB9.example_signature",
+    "tokenType": "Bearer",
+    "expiresIn": 86400,
+    "user": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "username": "testuser",
+      "email": "test@example.com",
+      "createdAt": "2025-11-01T10:00:00.000Z"
+    }
+  },
+  "timestamp": "2025-11-11T12:00:00.000Z",
+  "path": "/api/auth/login"
+}
+\`\`\`
+
+**Error Response Example (401 - Invalid Credentials):**
+\`\`\`json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid credentials"
+  },
+  "timestamp": "2025-11-11T12:00:00.000Z",
+  "path": "/api/auth/login"
+}
+\`\`\``,
         tags: ["Authentication"],
         body: {
           type: "object",
           required: ["username", "password"],
           properties: {
-            username: { type: "string", minLength: 3, maxLength: 50 },
-            password: { type: "string", minLength: 6 },
-          },
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-              data: {
-                type: "object",
-                properties: {
-                  accessToken: { type: "string" },
-                  tokenType: { type: "string" },
-                  expiresIn: { type: "number" },
-                  user: {
-                    type: "object",
-                    properties: {
-                      id: { type: "string" },
-                      username: { type: "string" },
-                      email: { type: "string" },
-                      createdAt: { type: "string" },
-                    },
-                  },
-                },
-              },
-              timestamp: { type: "string" },
-              path: { type: "string" },
+            username: {
+              type: "string",
+              minLength: 3,
+              maxLength: 50,
+              description: "Username",
+              example: "testuser",
+            },
+            password: {
+              type: "string",
+              minLength: 6,
+              description: "Password (minimum 6 characters)",
+              example: "password123",
             },
           },
         },
@@ -79,6 +96,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         user: authService.mapUserToDto(user),
       };
 
+      fastify.log.info({ response }, "Login response before return");
       return response;
     }
   );
@@ -88,31 +106,47 @@ export async function authRoutes(fastify: FastifyInstance) {
     {
       onRequest: [fastify.authenticate],
       schema: {
-        description: "Get current user information",
+        description: `Get current authenticated user information from JWT token
+
+**Success Response Example (200):**
+\`\`\`json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "testuser",
+    "email": "test@example.com"
+  },
+  "timestamp": "2025-11-11T12:00:00.000Z",
+  "path": "/api/auth/me"
+}
+\`\`\`
+
+**Error Response Example (401 - Unauthorized):**
+\`\`\`json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required"
+  },
+  "timestamp": "2025-11-11T12:00:00.000Z",
+  "path": "/api/auth/me"
+}
+\`\`\``,
         tags: ["Authentication"],
         security: [{ bearerAuth: [] }],
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-              data: {
-                type: "object",
-                properties: {
-                  id: { type: "string" },
-                  username: { type: "string" },
-                  email: { type: "string" },
-                },
-              },
-              timestamp: { type: "string" },
-              path: { type: "string" },
-            },
-          },
-        },
       },
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      return request.user;
+      // request.user contains the JWT payload: { sub, username, email, iat, exp }
+      const jwtPayload = request.user as JwtPayload;
+
+      return {
+        id: jwtPayload.sub,
+        username: jwtPayload.username,
+        email: jwtPayload.email,
+      };
     }
   );
 }
