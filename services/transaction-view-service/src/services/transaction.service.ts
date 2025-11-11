@@ -21,11 +21,72 @@ import { NatsClient } from "../infrastructure/nats.client";
 import { envConfig } from "../config/env.config";
 
 export class TransactionService {
+  private auditConfirmationResolvers: Map<
+    string,
+    { resolve: (value: boolean) => void; timeoutId: NodeJS.Timeout }
+  > = new Map();
+  private auditConfirmationSubscriptionInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
+
   constructor(
     private transactionRepository: TransactionRepository,
     private natsClient: NatsClient,
     private dataSource: DataSource
-  ) {}
+  ) {
+    // Start initialization but don't block constructor
+    this.initializationPromise = this.initializeAuditConfirmationSubscription();
+  }
+
+  /**
+   * Initialize a single shared subscription for all audit confirmations
+   * This prevents creating multiple subscriptions for concurrent transactions
+   */
+  private async initializeAuditConfirmationSubscription(): Promise<void> {
+    if (this.auditConfirmationSubscriptionInitialized) {
+      return;
+    }
+
+    try {
+      const subscription = this.natsClient
+        .getConnection()
+        .subscribe(NATS_SUBJECTS.AUDIT_LOG_CREATED);
+
+      (async () => {
+        for await (const msg of subscription) {
+          try {
+            const data = JSON.parse(new TextDecoder().decode(msg.data));
+            const resolver = this.auditConfirmationResolvers.get(
+              data.correlationId
+            );
+            if (resolver) {
+              clearTimeout(resolver.timeoutId);
+              this.auditConfirmationResolvers.delete(data.correlationId);
+              resolver.resolve(true);
+            }
+          } catch (error) {
+            console.error("Error processing audit confirmation:", error);
+          }
+        }
+      })();
+
+      this.auditConfirmationSubscriptionInitialized = true;
+    } catch (error) {
+      console.error(
+        "Failed to initialize audit confirmation subscription:",
+        error
+      );
+    }
+  }
+
+  /**
+   * Ensure the service is fully initialized before processing transactions
+   * This should be called before any transaction operations
+   */
+  async ensureInitialized(): Promise<void> {
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+    }
+  }
 
   async createTransaction(
     userId: string,
@@ -33,6 +94,9 @@ export class TransactionService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<TransactionDto> {
+    // Ensure subscription is initialized before processing
+    await this.ensureInitialized();
+
     const correlationId = uuidv4();
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -70,17 +134,21 @@ export class TransactionService {
         serviceName: envConfig.service.name,
       };
 
-      // Publish to NATS and wait for acknowledgment
+      // Register resolver BEFORE publishing to avoid race condition
+      // where the response arrives before we're ready to receive it
+      const confirmationPromise = this.waitForAuditConfirmation(
+        correlationId,
+        10000
+      );
+
+      // Publish to NATS
       await this.natsClient.publish(
         NATS_SUBJECTS.AUDIT_LOG_CREATE,
         auditLogDto
       );
 
       // Wait for audit log confirmation with timeout
-      const auditConfirmed = await this.waitForAuditConfirmation(
-        correlationId,
-        5000
-      );
+      const auditConfirmed = await confirmationPromise;
 
       if (!auditConfirmed) {
         throw new DistributedTransactionException(
@@ -115,6 +183,9 @@ export class TransactionService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<TransactionDto> {
+    // Ensure subscription is initialized before processing
+    await this.ensureInitialized();
+
     const correlationId = uuidv4();
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -161,15 +232,18 @@ export class TransactionService {
         serviceName: envConfig.service.name,
       };
 
+      // Register resolver BEFORE publishing to avoid race condition
+      const confirmationPromise = this.waitForAuditConfirmation(
+        correlationId,
+        10000
+      );
+
       await this.natsClient.publish(
         NATS_SUBJECTS.AUDIT_LOG_CREATE,
         auditLogDto
       );
 
-      const auditConfirmed = await this.waitForAuditConfirmation(
-        correlationId,
-        5000
-      );
+      const auditConfirmed = await confirmationPromise;
 
       if (!auditConfirmed) {
         throw new DistributedTransactionException(
@@ -200,6 +274,9 @@ export class TransactionService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<void> {
+    // Ensure subscription is initialized before processing
+    await this.ensureInitialized();
+
     const correlationId = uuidv4();
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -233,15 +310,18 @@ export class TransactionService {
         serviceName: envConfig.service.name,
       };
 
+      // Register resolver BEFORE publishing to avoid race condition
+      const confirmationPromise = this.waitForAuditConfirmation(
+        correlationId,
+        10000
+      );
+
       await this.natsClient.publish(
         NATS_SUBJECTS.AUDIT_LOG_CREATE,
         auditLogDto
       );
 
-      const auditConfirmed = await this.waitForAuditConfirmation(
-        correlationId,
-        5000
-      );
+      const auditConfirmed = await confirmationPromise;
 
       if (!auditConfirmed) {
         throw new DistributedTransactionException(
@@ -292,31 +372,26 @@ export class TransactionService {
     };
   }
 
+  /**
+   * Wait for audit confirmation using the shared subscription
+   * This is much more efficient for concurrent transactions
+   */
   private async waitForAuditConfirmation(
     correlationId: string,
     timeout: number
   ): Promise<boolean> {
     return new Promise((resolve) => {
       const timeoutId = setTimeout(() => {
+        this.auditConfirmationResolvers.delete(correlationId);
         resolve(false);
       }, timeout);
 
-      // Subscribe to audit log confirmation
-      const subscription = this.natsClient
-        .getConnection()
-        .subscribe(NATS_SUBJECTS.AUDIT_LOG_CREATED);
-
-      (async () => {
-        for await (const msg of subscription) {
-          const data = JSON.parse(new TextDecoder().decode(msg.data));
-          if (data.correlationId === correlationId) {
-            clearTimeout(timeoutId);
-            subscription.unsubscribe();
-            resolve(true);
-            break;
-          }
-        }
-      })();
+      // Register the resolver in the map
+      // The shared subscription will call it when the confirmation arrives
+      this.auditConfirmationResolvers.set(correlationId, {
+        resolve,
+        timeoutId,
+      });
     });
   }
 
