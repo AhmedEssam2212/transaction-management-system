@@ -449,6 +449,7 @@ npm run build --workspace=@transaction-system/shared
 This is the easiest way to run the entire system:
 
 ```bash
+# make sure the enviroment vars are there as mentioned below
 # Start all services
 docker-compose up --build
 
